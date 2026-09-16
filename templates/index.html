@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USD/JPY Signal Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1120;
+            color: #ffffff;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #94a3b8;
+            margin: 0;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid #263244;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .pair {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .live {
+            color: #22c55e;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .signal-box {
+            text-align: center;
+            padding: 25px 10px;
+            border-radius: 12px;
+            margin-top: 18px;
+            background: #1e293b;
+        }
+
+        .signal-label {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .signal {
+            font-size: 35px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .buy {
+            color: #22c55e;
+        }
+
+        .sell {
+            color: #ef4444;
+        }
+
+        .neutral {
+            color: #facc15;
+        }
+
+        .timeframe {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #263244;
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .value {
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #f87171;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #94a3b8;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>📊 USD/JPY Signal Bot</h1>
+        <p>RSI + EMA Trading Dashboard</p>
+    </div>
+
+    <div class="card">
+        <div class="pair">USD/JPY</div>
+        <div class="live">● Live Market Signal</div>
+
+        <div id="status" class="loading">
+            Loading market data...
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="timeframe">⏱️ 15 Minutes</div>
+
+        <div class="signal-box">
+            <div class="signal-label">TRADING SIGNAL</div>
+            <div id="signal15" class="signal neutral">WAIT</div>
+        </div>
+
+        <div class="row">
+            <span>RSI</span>
+            <span id="rsi15" class="value">--</span>
+        </div>
+
+        <div class="row">
+            <span>EMA</span>
+            <span id="ema15" class="value">--</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="timeframe">⏱️ 1 Hour</div>
+
+        <div class="signal-box">
+            <div class="signal-label">TRADING SIGNAL</div>
+            <div id="signal1h" class="signal neutral">WAIT</div>
+        </div>
+
+        <div class="row">
+            <span>RSI</span>
+            <span id="rsi1h" class="value">--</span>
+        </div>
+
+        <div class="row">
+            <span>EMA</span>
+            <span id="ema1h" class="value">--</span>
+        </div>
+    </div>
+
+    <div class="footer">
+        RSI + EMA • Auto Refresh: 60 Seconds<br>
+        Signals are for educational purposes only.
+    </div>
+
+</div>
+
+<script>
+    function updateSignal(elementId, signal) {
+        const element = document.getElementById(elementId);
+
+        element.className = "signal";
+
+        if (!signal) {
+            element.textContent = "WAIT";
+            element.classList.add("neutral");
+            return;
+        }
+
+        const text = String(signal).toUpperCase();
+
+        if (text.includes("BUY")) {
+            element.textContent = "🟢 BUY";
+            element.classList.add("buy");
+        } else if (text.includes("SELL")) {
+            element.textContent = "🔴 SELL";
+            element.classList.add("sell");
+        } else {
+            element.textContent = "🟡 " + text;
+            element.classList.add("neutral");
+        }
+    }
+
+    async function loadSignals() {
+        const status = document.getElementById("status");
+
+        try {
+            const response = await fetch("/api/signal");
+            const data = await response.json();
+
+            if (data.status === "error") {
+                status.innerHTML = '<div class="error">' +
+                    data.message +
+                    '</div>';
+                return;
+            }
+
+            status.innerHTML =
+                '<div class="live">● Data Updated: ' +
+                new Date().toLocaleTimeString() +
+                '</div>';
+
+            updateSignal("signal15", data.timeframe_15m);
+            updateSignal("signal1h", data.timeframe_1h);
+
+        } catch (error) {
+            status.innerHTML =
+                '<div class="error">Unable to load market data.</div>';
+        }
+    }
+
+    loadSignals();
+
+    setInterval(loadSignals, 60000);
+</script>
+
+</body>
+</html>
